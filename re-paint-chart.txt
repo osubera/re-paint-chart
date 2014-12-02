@@ -1,0 +1,232 @@
+﻿'ssf-begin
+';
+
+'workbook
+'   name;re-paint-chart.xlsm/RePaintChart
+
+'book-identity
+
+'require
+
+'worksheet
+'   name;howto/Sheet1
+
+'cells-formula
+'  address;A1:A3
+'         ;// re-paint-chart
+'         ;// 自律, 自由, 公正, http://paidforeveryone.wordpress.com
+'         ;// Tomizono - mocvba.com
+'  address;A6
+'         ;Re-Paint Chart
+'  address;B8
+'         ;Modify colors of existing chart.
+'  address;B15:E26
+'         ;Plot Fill Color
+'         ;R
+'     skip;1
+'         ;=HEX2DEC("FF")
+'     skip;1
+'         ;G
+'     skip;3
+'         ;B
+'         ;=HEX2DEC("FF")
+'     skip;2
+'         ;alpha
+'         ;0.1
+'     skip;1
+'         ;Line Color
+'         ;R
+'         ;=HEX2DEC("FF")
+'     skip;2
+'         ;G
+'     skip;1
+'         ;=HEX2DEC("FF")
+'     skip;1
+'         ;B
+'     skip;3
+'         ;alpha
+'         ;0.5
+'     skip;1
+'         ;series name
+'     skip;1
+'         ;y1
+'         ;y2
+'         ;chart data
+'     skip;1
+'         ;5
+'         ;7
+'     skip;2
+'         ;6
+'         ;8
+'     skip;2
+'         ;4
+'         ;9
+'  address;B30:B31
+'         ;After generating chart manually with the range of D23:E26 above, 
+'         ;specify colors and transparencies at D15:E22. 
+'  address;B33
+'         ;Then, run the macro: 
+'  address;B35
+'         ;ModifyColorsChart
+'  address;B38
+'         ;The color range is located above 8 lines on the series name of the chart data. 
+
+'cells-numberformat
+'  address;D18
+'         ;0%
+'  address;D22
+'         ;0%
+
+'cells-width
+'   unit;pt
+'  address;B1:C1
+'         ;93.75
+'         ;44.25
+
+'cells-height
+'   unit;pt
+'  address;A6
+'         ;21
+'  address;A23:A26
+'   repeat;4
+'         ;14.25
+
+'cells-font-name
+'  address;D23:E26
+'   repeat;8
+'         ;Calibri (テーマの本文)
+
+'cells-font-size
+'  address;A6
+'         ;18
+'  address;D23:E26
+'   repeat;8
+'         ;12
+
+'cells-h-align
+'  address;D23:E26
+'   repeat;8
+'         ;center
+
+'cells-v-align
+'  address;A1:E38
+'   repeat;113
+'         ;center
+'     skip;2
+'   repeat;3
+'         ;center
+'     skip;2
+'   repeat;3
+'         ;center
+'     skip;2
+'   repeat;3
+'         ;center
+'     skip;2
+'   repeat;60
+'         ;center
+
+'module
+'   name;ModifyColorsChart
+'{{{
+Option Explicit
+
+Public Sub ModifyColorsChart()
+    Application.ScreenUpdating = False
+    
+    ModifyColor ActiveChart
+    
+    Application.ScreenUpdating = True
+End Sub
+
+Private Function ModifyColor(C As Chart)
+    Dim iSeries As Long
+    Dim SeriesNum As Long
+    Dim FirstComma As Long
+    Dim FirstParenthesis As Long
+    Dim SeriesRange As String
+    Dim Label As String
+    Dim LineRange As Range
+    Dim FillRange As Range
+
+    SeriesNum = C.SeriesCollection.Count
+    For iSeries = 1 To SeriesNum
+        SeriesRange = C.SeriesCollection(iSeries).Formula
+        'Debug.Print SeriesRange
+        ' Debug.Print ActiveChart.SeriesCollection(1).Formula
+        ' =SERIES(Sheet1!$C$1,Sheet1!$B$2:$B$4,Sheet1!$C$2:$C$4,1)
+        '        (系列名     ,X軸データ       ,系列データ      ,系列番号)
+        ' =SERIES(Sheet1!$B$1,,Sheet1!$B$2:$B$4,1)
+        '        (系列名     ,,系列データ      ,系列番号)
+        
+        FirstParenthesis = InStr(SeriesRange, "(")
+        FirstComma = InStr(SeriesRange, ",")
+        Label = Mid(SeriesRange, FirstParenthesis + 1, FirstComma - FirstParenthesis - 1)
+        'Debug.Print Label
+        
+        Set LineRange = Range(Label).Offset(-4, 0).Range("A1:A4")
+        Set FillRange = LineRange.Offset(-4, 0)
+        'Debug.Print LineRange.Address(False, False)
+        'Debug.Print FillRange.Address(False, False)
+        
+        DoPaint C.SeriesCollection(iSeries).Format.Line, LineRange
+        DoPaint C.SeriesCollection(iSeries).Format.Fill, FillRange
+    Next
+End Function
+
+Private Function DoPaint(S As Object, Ra As Range)
+    If NotAllBlank(Ra) Then SetAlpha S, Ra
+    If NotAllBlank(Ra) Then SetRGB S, Ra
+End Function
+
+Private Function NotAllBlank(Ra As Range)
+    Dim x As Range
+    NotAllBlank = True
+    
+    For Each x In Ra.Cells
+        If x.Value <> "" Then Exit Function
+    Next
+    NotAllBlank = False
+End Function
+
+Private Function SetAlpha(S As Object, Ra As Range)
+    'S.Solid
+    S.Transparency = Ra(4).Value
+End Function
+
+Private Function SetRGB(S As Object, Ra As Range)
+    Dim R As Long
+    Dim G As Long
+    Dim B As Long
+    
+    If Ra(1).Value = " " Or Ra(2).Value = " " Or Ra(3).Value = " " Then
+        S.Visible = msoFalse
+        Exit Function
+    Else
+        S.Visible = msoTrue
+    End If
+    
+    If Ra(1).Value <> "" Then
+        R = Ra(1).Value
+    Else
+        R = S.ForeColor.RGB And RGB(255, 0, 0)
+    End If
+    
+    If Ra(2).Value <> "" Then
+        G = Ra(2).Value
+    Else
+        G = (S.ForeColor.RGB And RGB(0, 255, 0)) / 256
+    End If
+    
+    If Ra(3).Value <> "" Then
+        B = Ra(3).Value
+    Else
+        B = (S.ForeColor.RGB And RGB(0, 0, 255)) / 256 / 256
+    End If
+    
+    S.ForeColor.RGB = RGB(R, G, B)
+End Function
+
+'}}}
+
+'ssf-end
+
